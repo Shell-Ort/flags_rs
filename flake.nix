@@ -1,5 +1,6 @@
 {
-  description = "Rust";
+  # Edited in visual studio code with de rust-analizer extension
+  description = "Flake for flags";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
   outputs =
     { self, nixpkgs }:
