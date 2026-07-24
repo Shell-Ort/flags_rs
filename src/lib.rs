@@ -61,43 +61,25 @@ where
     Ok((ret, exit))
 }
 
-/// Must be called always after all the values of the flags ahve been retrieved (it will panic if called otherwise)
+/// Must be called always after all the values of the flags.
 ///
-/// If a flag is passed by args and is not retrieved, it will panic. It will print help if passed.
+/// Is to  print help if needed.
 pub fn parse_flags() {
     let mp = parse_arguments().lock().unwrap();
-
-    let print_help = || {
-        println!("Flags help: ");
-        for (key, value) in mp.iter().filter(|(_, val)| val.starts_with("=")) {
-            let sl: Vec<_> = value.split("=").collect();
-            let (desc, default, typ) = (sl[1], sl[2], sl[3]);
-            println!("-{key} {typ}");
-            println!("\t{desc} (default {default})");
-        }
-    };
-
+    
     if mp.contains_key("-help") || mp.contains_key("h") {
         if mp.len() == 1 {
-            print_help();
-            exit(1);
+            println!("Flags help: ");
+            for (key, value) in mp.iter().filter(|(_, val)| val.starts_with("=")) {
+                let sl: Vec<_> = value.split("=").collect();
+                let (desc, default, typ) = (sl[1], sl[2], sl[3]);
+                println!("-{key} {typ}");
+                println!("\t{desc} (default {default})");
+            }
         } else {
-            panic!("--help && -h are only use alone.")
+            eprintln!("--help && -h are only use alone.")
         }
-    }
-
-    let bad_ones: Vec<_> = mp.iter().filter(|(_, val)| !val.starts_with("=")).collect();
-    if !bad_ones.is_empty() {
-        let sal = bad_ones
-            .into_iter()
-            .map(|(_, val)| val)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(", ")
-            + ".";
-        println!("Unknown flags: \n{sal}");
-        print_help();
-        panic!();
+        exit(1);
     }
 }
 
@@ -149,6 +131,7 @@ fn parse_pair(arg: &String) -> Option<(String, String)> {
                     "In case with no value, you should use {},not {arg}.",
                     arg.chars().take(arg.len() - 1).collect::<String>()
                 );
+                return None;
             }
             (
                 arg.chars().skip(1).take(idx - 1).collect(),
@@ -184,5 +167,22 @@ mod tests {
         assert_eq!(par, Err(String::from("Duplicate flag in code: prueba")));
         let par = flag::<bool>("past", &false, "asda");
         assert_eq!(par, Ok((false, false)));
+        let (name, _exists) =
+            flag::<String>("name", &"world".to_string(), "Name to greet.").unwrap();
+        assert_eq!(name, String::from("world"));
+    }
+
+    #[test]
+    fn parse_pair_invalid() {
+        assert_eq!(parse_pair(&String::from("hello")), None);
+        assert_eq!(parse_pair(&String::from("-=10")), None);
+        assert_eq!(parse_pair(&String::from("-flag=")), None);
+    }
+
+    #[test]
+    fn bool_flag_default() {
+        let (verbose, exists) = flag::<bool>("verbose", &false, "ajdhakjds").unwrap();
+        assert_eq!(verbose, false);
+        assert!(!exists);
     }
 }

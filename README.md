@@ -28,7 +28,16 @@ flags_rs = "0.1.0"
 // This allows you to distinguish between a default value and a user-supplied one.
 
 let (value, exists) =
-    flags_rs::flag::<i32>("flag", &10, "An example flag.")
-        .ok()
-        .unwrap();
+    flags_rs::flag::<i32>(
+        "flag", 
+        &10, 
+        "An example flag."
+    ).unwrap();
+
+let (debug, _) = 
+    flags_rs::flag::<bool>(
+        "debug",
+        &false,
+        "Enable debug mode."
+    ).unwrap();
 ```
