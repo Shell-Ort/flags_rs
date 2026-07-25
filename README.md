@@ -14,6 +14,11 @@ Flags without a value are treated as boolean flags:
 -verbose
 ```
 
+To print help of the flags (must be used after all the flags are declarated) and be the only flag in args:
+```sh
+--help  -h
+```
+
 ## Installation
 
 ```toml
