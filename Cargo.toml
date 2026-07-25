@@ -3,4 +3,8 @@ name = "flags_rs"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+description = "A lightweight library for parsing command-line flags."
+license = "MIT"
+repository = "https://github.com/Shell-Ort/flags_rs"
+homepage = "https://github.com/Shell-Ort/flags_rs"
+readme = "README.md"

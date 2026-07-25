@@ -66,7 +66,7 @@ where
 /// Is to  print help if needed.
 pub fn parse_flags() {
     let mp = parse_arguments().lock().unwrap();
-    
+
     if mp.contains_key("-help") || mp.contains_key("h") {
         if mp.len() == 1 {
             println!("Flags help: ");
