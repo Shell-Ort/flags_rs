@@ -1,6 +1,6 @@
 # flags_rs: A simple Go-like flag library for Rust
 
-A lightweight library for parsing command-line flags.
+A lightweight library for parsing command-line flags. 
 
 Flags with values are passed using the following syntax:
 
@@ -21,9 +21,11 @@ To print help of the flags (must be used after all the flags are declarated) and
 
 ## Installation
 
+(See the extra "t")
+
 ```toml
 [dependencies]
-flags_rs = "0.1.0"
+flags_rst = "0.1.0"
 ```
 
 ## Example
