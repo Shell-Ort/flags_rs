@@ -19,13 +19,15 @@ To print help of the flags (it must be the only flag in args):
 --help  -h
 ```
 
+To see the args not flags use non_flags().
+
 ## Installation
 
 (See the extra "t")
 
 ```toml
 [dependencies]
-flags_rst = "0.1.0"
+flags_rst = "0.2.0"
 ```
 
 ## Example

@@ -1,15 +1,13 @@
 use std::{
-    any::type_name,
-    cmp::Ordering::Equal,
-    collections::BTreeMap,
-    env::args,
-    fmt::Debug,
-    process::exit,
-    str::FromStr,
-    sync::{Mutex, OnceLock},
+    any::type_name, cmp::Ordering::Equal, collections::{BTreeMap, HashSet}, env::args, fmt::Debug, process::exit, str::FromStr, sync::{Mutex, OnceLock},
 };
 
-static FLAGS: OnceLock<Mutex<BTreeMap<String, String>>> = OnceLock::new();
+struct Savings {
+    mp: BTreeMap<String, String>,
+    extras: Vec<String>,
+}
+
+static FLAGS: OnceLock<Mutex<Savings>> = OnceLock::new();
 
 /// Access to the flags. Only the first time is called all the flags are parsed, it is keep in memory for future calls.
 ///
@@ -23,7 +21,8 @@ where
     T: Clone + FromStr + ToString,
     <T as FromStr>::Err: Debug,
 {
-    let mut mp = parse_arguments().lock().unwrap();
+    let mut data = parse_arguments().lock().unwrap();
+    let mp = &mut data.mp;
     let flag = flag.to_string();
 
     // To know which ones we already visited, we save and = with the description + default value
@@ -65,7 +64,8 @@ where
 ///
 /// Is to  print help if needed.
 pub fn parse_flags() {
-    let mp = parse_arguments().lock().unwrap();
+    let data = parse_arguments().lock().unwrap();
+    let mp = &data.mp;
 
     if mp.contains_key("-help") || mp.contains_key("h") {
         if mp.len() == 1 {
@@ -83,15 +83,26 @@ pub fn parse_flags() {
     }
 }
 
-/// Function that will return de Binary Tree Map
-/// Binary Tree and not HashMap because Hash is O(1) with a really big One
-fn parse_arguments() -> &'static Mutex<BTreeMap<String, String>> {
+/// Return a copy of the vector of the args non flags
+pub fn non_flags() -> Vec<String> {
+    parse_arguments().lock().unwrap().extras.clone()
+}
+
+// Function that will return de Binary Tree Map
+// Binary Tree and not HashMap because Hash is O(1) with a really big One
+fn parse_arguments() -> &'static Mutex<Savings> {
     FLAGS.get_or_init(|| {
         let mut mp: BTreeMap<String, String> = BTreeMap::new();
+        let mut extras: HashSet<String> = HashSet::new();
 
-        for arg in args() {
-            let Some((key, value)) = parse_pair(&arg) else {
-                continue;
+        for arg in args().skip(1) {
+            let (key,value) = match parse_pair(&arg) {
+                Ok((k,v)) => (k,v),
+                Err(BadFlag::NotFlag) => {
+                    extras.insert(arg);
+                    continue;
+                },
+                _ => continue,
             };
 
             // Check if already
@@ -106,32 +117,40 @@ fn parse_arguments() -> &'static Mutex<BTreeMap<String, String>> {
             };
         }
 
-        Mutex::new(mp)
+        let extras: Vec<String> = extras.into_iter().collect();
+
+        Mutex::new(Savings { mp, extras })
     })
 }
 
-/// Is a separated function only for the tests
-fn parse_pair(arg: &String) -> Option<(String, String)> {
+#[derive(PartialEq, Eq, Debug)]
+enum BadFlag {
+    NotFlag,
+    BadSyntax,
+}
+
+// Is a separated function only for the tests
+fn parse_pair(arg: &String) -> Result<(String, String), BadFlag> {
     if !arg.starts_with("-") {
-        return None;
+        return Err(BadFlag::NotFlag);
     }
     let (key, value) = match arg.find("=") {
         // In case -...=...
         Some(idx) => {
             if arg.chars().filter(|e| e.eq(&'=')).count() > 1 {
                 eprintln!("Error in arg {arg}, only one = is valid.");
-                return None;
+                return Err(BadFlag::BadSyntax);
             }
             if idx == 1 {
                 eprintln!("Empty argument name in {arg} is not valid.");
-                return None;
+                return Err(BadFlag::BadSyntax);
             }
             if arg.ends_with("=") {
                 eprintln!(
                     "In case with no value, you should use {},not {arg}.",
                     arg.chars().take(arg.len() - 1).collect::<String>()
                 );
-                return None;
+                return Err(BadFlag::BadSyntax);
             }
             (
                 arg.chars().skip(1).take(idx - 1).collect(),
@@ -141,12 +160,12 @@ fn parse_pair(arg: &String) -> Option<(String, String)> {
         None => {
             if arg.len() == 1 {
                 eprint!("Single - non valid.");
-                return None;
+                return Err(BadFlag::BadSyntax);
             }
             (arg.chars().skip(1).collect(), String::new())
         }
     };
-    Some((key, value))
+    Ok((key, value))
 }
 
 #[cfg(test)]
@@ -156,7 +175,7 @@ mod tests {
     #[test]
     fn it_works() {
         let result = parse_pair(&String::from("-prueba=10"));
-        assert_eq!(result, Some((String::from("prueba"), String::from("10"))));
+        assert_eq!(result, Ok((String::from("prueba"), String::from("10"))));
     }
 
     #[test]
@@ -174,9 +193,9 @@ mod tests {
 
     #[test]
     fn parse_pair_invalid() {
-        assert_eq!(parse_pair(&String::from("hello")), None);
-        assert_eq!(parse_pair(&String::from("-=10")), None);
-        assert_eq!(parse_pair(&String::from("-flag=")), None);
+        assert_eq!(parse_pair(&String::from("hello")), Err(BadFlag::NotFlag));
+        assert_eq!(parse_pair(&String::from("-=10")), Err(BadFlag::BadSyntax));
+        assert_eq!(parse_pair(&String::from("-flag=")), Err(BadFlag::BadSyntax));
     }
 
     #[test]
